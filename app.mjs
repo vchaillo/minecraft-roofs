@@ -180,15 +180,9 @@ function drawPiece(context, piece, x, y, size) {
     const top = kind === 'slab' ? half : 0;
     context.rect(0, top, size, size - top);
   }
-  context.save();
-  context.clip();
-  context.imageSmoothingEnabled = false;
-  context.drawImage(tiles.get(material.id), 0, 0, size, size);
-  context.strokeStyle = '#fff2d988';
-  context.lineWidth = Math.max(1.25, size / 10);
-  context.stroke();
-  context.restore();
-  context.strokeStyle = '#131710';
+  context.fillStyle = material.color;
+  context.fill();
+  context.strokeStyle = '#293341';
   context.lineWidth = Math.max(1, size / 24);
   context.stroke();
   context.restore();
@@ -204,10 +198,7 @@ function drawProfile(context, viewportWidth, viewportHeight) {
   const base = Math.round((viewportHeight + gridHeight + bounds.top - bounds.bottom) / 2);
   const top = base - gridHeight;
 
-  const backdrop = context.createLinearGradient(0, 0, 0, viewportHeight);
-  backdrop.addColorStop(0, '#202d23');
-  backdrop.addColorStop(1, '#131b16');
-  context.fillStyle = backdrop;
+  context.fillStyle = '#bfd9ed';
   context.fillRect(0, 0, viewportWidth, viewportHeight);
 
   if (showGrid) {
@@ -222,7 +213,7 @@ function drawProfile(context, viewportWidth, viewportHeight) {
       context.moveTo(left, y);
       context.lineTo(left + gridWidth, y);
     }
-    context.strokeStyle = '#455549';
+    context.strokeStyle = '#8eafc7';
     context.lineWidth = 1;
     context.stroke();
 
@@ -230,7 +221,7 @@ function drawProfile(context, viewportWidth, viewportHeight) {
     context.setLineDash([3, 4]);
     context.moveTo(left + gridWidth / 2, top - 10);
     context.lineTo(left + gridWidth / 2, base);
-    context.strokeStyle = '#9aab7c';
+    context.strokeStyle = '#607e9a';
     context.stroke();
     context.setLineDash([]);
   }
@@ -239,14 +230,14 @@ function drawProfile(context, viewportWidth, viewportHeight) {
     drawPiece(context, piece, left + piece.x * size, base - (piece.y + 1) * size, size);
   }
 
-  context.strokeStyle = '#829177';
+  context.strokeStyle = '#58728b';
   context.beginPath();
   context.moveTo(left, base + 1);
   context.lineTo(left + gridWidth, base + 1);
   context.stroke();
 
-  context.fillStyle = '#c5d2b5';
-  context.font = '11px "IBM Plex Mono", monospace';
+  context.fillStyle = '#344e65';
+  context.font = '12px Monocraft, monospace';
   context.textBaseline = 'middle';
   context.textAlign = 'right';
   const rowInterval = Math.max(1, Math.ceil(22 / size));
