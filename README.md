@@ -1,6 +1,8 @@
 # Minecraft Roofs
 
-A static Minecraft roof cross-section generator with a French interface. Choose a width, a height and one of four shapes. The diagram shows the block positions, bottom slabs and stairs to reproduce across the length of a roof. Material counts are for one cross-section.
+A full-screen Minecraft roof cross-section generator with a French interface. Pick one of eight shapes and a material, then choose an odd width for a single-block ridge or an even width for a two-block ridge. The diagram and PNG show one cross-section. On mobile, open Settings to display the drawer.
+
+The material catalog covers the 97 families with both stairs and slabs in the official Java Edition 26.3 client block states. Preview textures are drawn by the app.
 
 ## Run locally
 

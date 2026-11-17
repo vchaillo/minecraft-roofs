@@ -2,37 +2,43 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#202821">
-  <meta name="description" content="Dessine un profil de toit Minecraft à reproduire avec des blocs, des dalles et des escaliers.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#171d17">
+  <meta name="description" content="Atelier de toiture pour Minecraft.">
   <title>Minecraft Roofs · Atelier de toiture</title>
   <link rel="icon" href="./roof.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.mjs"></script>
 </head>
 <body>
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-library" aria-hidden="true">
+    <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 1.8 7M3 4v6h6"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-dropdown" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18M8 3v6m8 0v6m-6 0v6"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></symbol>
+  </svg>
   <header class="site-header">
-    <div class="header-inner">
-      <div class="brand"><img src="./roof.svg" width="36" height="36" alt=""><span>Minecraft <strong>Roofs</strong></span></div>
-      <a class="github" href="https://github.com/vchaillo/minecraft-roofs" aria-label="Code source sur GitHub">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.73 1.16 1.73 1.16 1 1.73 2.64 1.23 3.29.94.1-.73.39-1.23.72-1.51-2.5-.29-5.13-1.25-5.13-5.56 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.31 3.09 1.15a10.75 10.75 0 0 1 5.63 0c2.15-1.46 3.09-1.15 3.09-1.15.62 1.55.23 2.69.12 2.98.72.79 1.15 1.79 1.15 3.02 0 4.32-2.63 5.27-5.14 5.55.4.35.77 1.04.77 2.08v3.11c0 .3.2.65.77.54A11.25 11.25 0 0 0 12 .75Z"/></svg>
-        GitHub
-      </a>
+    <h1><img src="./roof.svg" width="38" height="38" alt=""><span>Minecraft <strong>Roofs</strong></span></h1>
+    <div class="avatar" role="img" aria-label="Avatar Minecraft">
+      <svg viewBox="0 0 8 8" width="28" height="28" shape-rendering="crispEdges" aria-hidden="true">
+        <path fill="#b57a55" d="M0 0h8v8H0z"/><path fill="#503a2c" d="M0 0h8v2H7v1H6V2H2v1H1v2H0zm7 3h1v2H7z"/>
+        <path fill="#e4a575" d="M2 2h4v1h1v3H6v2H2V6H1V3h1z"/><path fill="#f2e9dd" d="M1 4h2v1H1zm4 0h2v1H5z"/>
+        <path fill="#6373a4" d="M2 4h1v1H2zm3 0h1v1H5z"/><path fill="#975c44" d="M3 5h2v1H3zm-1 1h1v1h2V6h1v2H2z"/>
+      </svg>
     </div>
   </header>
-  <main class="page">
-    <div class="intro">
-      <h1>Atelier de toiture<span>.</span></h1>
-      <p>Dessine ton toit Minecraft, puis reproduis sa coupe bloc par bloc.</p>
-    </div>
-    <div class="workspace">
-      <form class="panel settings" id="settings">
-        <div class="panel-heading">
-          <h2>Réglages</h2>
-          <button class="reset" type="reset" aria-label="Réinitialiser les réglages" title="Réinitialiser les réglages">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10a9 9 0 1 1 1.8 7M3 4v6h6"/></svg>
-          </button>
-        </div>
+  <main class="workspace">
+    <dialog class="settings panel" id="settings-panel" aria-labelledby="settings-title">
+      <form id="settings">
+        <header class="settings-heading">
+          <h2 id="settings-title">Réglages</h2>
+          <div class="toolbar">
+            <button class="icon-button" type="reset" aria-label="Réinitialiser les réglages" title="Réinitialiser les réglages"><svg><use href="#icon-reset"/></svg></button>
+            <button class="icon-button mobile-only" type="button" id="close-settings" aria-label="Fermer les réglages"><svg><use href="#icon-close"/></svg></button>
+          </div>
+        </header>
+
         <fieldset>
           <legend>Forme du toit</legend>
           <div class="shapes" id="shapes"></div>
@@ -41,38 +47,52 @@
           <legend>Dimensions</legend>
           <div class="dimension">
             <div class="dimension-label"><label for="width">Largeur</label><output id="width-value" for="width">17 blocs</output></div>
-            <input type="range" id="width" name="width" min="5" max="49" value="17">
-            <div class="limits" aria-hidden="true"><span>5</span><span>49</span></div>
+            <input type="range" id="width" name="width" min="5" max="49" step="2" value="17">
           </div>
           <div class="dimension">
             <div class="dimension-label"><label for="height">Hauteur</label><output id="height-value" for="height">6 blocs</output></div>
             <input type="range" id="height" name="height" min="2" max="24" value="6">
-            <div class="limits" aria-hidden="true"><span>2</span><span>24</span></div>
           </div>
+          <div class="setting-line"><label for="double-ridge">Double bloc central</label><input class="switch" id="double-ridge" name="double-ridge" type="checkbox" role="switch"></div>
         </fieldset>
-        <div class="grid-option"><label for="grid">Afficher la grille</label><input id="grid" type="checkbox" name="grid" role="switch" checked></div>
-      </form>
-      <section class="panel preview" aria-labelledby="preview-title">
-        <div class="panel-heading preview-heading">
-          <div><h2 id="preview-title">Profil du toit</h2><p id="profile-meta"></p></div>
-          <button type="button" id="download" class="download">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></svg>
-            Exporter en PNG
+        <div class="material-setting">
+          <label for="choose-material">Matériau du toit</label>
+          <button type="button" class="material-button" id="choose-material" aria-haspopup="dialog">
+            <span class="swatch" id="current-swatch" aria-hidden="true"></span><span id="current-material">Chêne</span><svg><use href="#icon-dropdown"/></svg>
           </button>
         </div>
-        <div class="stage">
-          <div class="stage-top"><span><i></i> Coupe transversale</span><span>1 case = 1 bloc</span></div>
-          <div class="plot"><canvas id="profile" role="img"></canvas></div>
+        <div class="setting-line show-grid"><label for="grid">Afficher la grille</label><input class="switch" id="grid" type="checkbox" name="grid" role="switch" checked></div>
+      </form>
+    </dialog>
+
+    <section class="preview panel" aria-labelledby="preview-title">
+      <header class="preview-heading">
+        <div><h2 id="preview-title">Profil du toit</h2><p id="profile-meta"></p></div>
+        <div class="toolbar">
+          <button type="button" id="open-settings" aria-label="Réglages" class="action mobile-only" aria-controls="settings-panel" aria-haspopup="dialog"><svg><use href="#icon-settings"/></svg><span>Réglages</span></button>
+          <button type="button" id="download" class="action primary" aria-label="Exporter en PNG" title="Exporter en PNG"><svg><use href="#icon-download"/></svg><span>Exporter en PNG</span></button>
         </div>
-        <div class="materials" aria-label="Pièces par coupe">
-          <div><span class="piece block" aria-hidden="true"></span><span>Blocs</span><strong id="blocks">0</strong></div>
-          <div><span class="piece slab" aria-hidden="true"></span><span>Dalles</span><strong id="slabs">0</strong></div>
-          <div><span class="piece stair" aria-hidden="true"></span><span>Escaliers</span><strong id="stairs">0</strong></div>
-        </div>
-        <p class="preview-note" id="profile-instructions">Le dessin indique le sens des escaliers et la position des dalles pour une tranche de toit.</p>
-        <p class="sr-only" role="status" id="export-status"></p>
-      </section>
-    </div>
+      </header>
+      <div class="stage">
+        <div class="stage-top"><span><i></i> Coupe transversale</span><span>1 case = 1 bloc</span></div>
+        <div class="plot" role="region" aria-label="Grille du toit" tabindex="0"><canvas id="profile" role="img"></canvas></div>
+      </div>
+      <div class="materials" aria-label="Pièces par coupe">
+        <div><span class="piece block" aria-hidden="true"></span><span>Blocs</span><strong id="blocks">0</strong></div>
+        <div><span class="piece slab" aria-hidden="true"></span><span>Dalles</span><strong id="slabs">0</strong></div>
+        <div><span class="piece stair" aria-hidden="true"></span><span>Escaliers</span><strong id="stairs">0</strong></div>
+      </div>
+      <p class="sr-only" role="status" id="export-status"></p>
+    </section>
   </main>
+
+  <dialog class="picker panel" id="material-picker" aria-labelledby="picker-title">
+    <div class="picker-heading">
+      <div><h2 id="picker-title">Choisir un matériau</h2><p>Java Edition 26.3 <span aria-hidden="true">·</span> <span id="material-total"></span></p></div>
+      <button type="button" class="icon-button" id="close-picker" aria-label="Fermer le choix du matériau"><svg><use href="#icon-close"/></svg></button>
+    </div>
+    <input id="material-search" type="search" aria-label="Rechercher un matériau" placeholder="Rechercher un matériau…">
+    <div class="material-list" id="material-list"></div>
+  </dialog>
 </body>
 </html>
