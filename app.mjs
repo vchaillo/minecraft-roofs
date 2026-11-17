@@ -55,8 +55,7 @@ const tileUrls = new Map([...tiles].map(([id, tile]) => [id, tile.toDataURL()]))
 
 function applySwatch(element, material) {
   element.style.setProperty('--swatch-color', material.color);
-  element.style.backgroundImage = `url(${tileUrls.get(material.id)})`;
-  element.style.backgroundSize = '100% 100%';
+  element.style.setProperty('--swatch-texture', `url("${tileUrls.get(material.id)}")`);
 }
 
 function normalizeSearch(text) {
@@ -78,6 +77,7 @@ const sections = materialGroups.map((group) => {
     const swatch = document.createElement('span');
     swatch.className = 'swatch';
     swatch.setAttribute('aria-hidden', 'true');
+    swatch.append(document.createElement('i'));
     applySwatch(swatch, entry);
     button.append(swatch, entry.name);
     swatches.append(button);
@@ -301,8 +301,6 @@ function update() {
   for (const slider of [widthInput, heightInput]) {
     document.querySelector(`#${slider.id}-value`).value = `${slider.value} blocs`;
     slider.setAttribute('aria-valuetext', `${slider.value} blocs`);
-    const progress = (slider.valueAsNumber - Number(slider.min)) / (Number(slider.max) - Number(slider.min));
-    slider.style.setProperty('--fill', `${progress * 100}%`);
   }
 
   const summary = `${roofShapes[shape].label} · ${width} × ${height} blocs · ${material.name}`;
