@@ -6,11 +6,12 @@
   <meta name="theme-color" content="#292826">
   <meta name="description" content="Atelier de toiture pour Minecraft.">
   <title>Minecraft Roofs · Atelier de toiture</title>
-  <link rel="icon" href="./roof.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=java-menu">
-  <script type="module" src="./app.mjs?v=java-menu"></script>
+  <link rel="icon" href="./crafting-table.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css?v=seasons">
+  <script type="module" src="./app.mjs?v=seasons"></script>
 </head>
 <body>
+  <canvas class="scenery" id="scenery" aria-hidden="true"></canvas>
   <svg xmlns="http://www.w3.org/2000/svg" class="icon-library" aria-hidden="true">
     <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 1.8 7M3 4v6h6"/></symbol>
     <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
@@ -20,12 +21,38 @@
   </svg>
   <header class="site-header">
     <h1><img src="./roof.svg" width="38" height="38" alt=""><span>Minecraft <strong>Roofs</strong></span></h1>
-    <div class="avatar" role="img" aria-label="Avatar Minecraft">
+    <div class="appearance">
+      <button class="avatar icon-button" id="appearance-toggle" type="button" aria-label="Apparence du décor" aria-expanded="false" aria-controls="appearance-menu">
       <svg viewBox="0 0 8 8" width="28" height="28" shape-rendering="crispEdges" aria-hidden="true">
         <path fill="#b57a55" d="M0 0h8v8H0z"/><path fill="#503a2c" d="M0 0h8v2H7v1H6V2H2v1H1v2H0zm7 3h1v2H7z"/>
         <path fill="#e4a575" d="M2 2h4v1h1v3H6v2H2V6H1V3h1z"/><path fill="#f2e9dd" d="M1 4h2v1H1zm4 0h2v1H5z"/>
         <path fill="#6373a4" d="M2 4h1v1H2zm3 0h1v1H5z"/><path fill="#975c44" d="M3 5h2v1H3zm-1 1h1v1h2V6h1v2H2z"/>
       </svg>
+      </button>
+      <div class="appearance-menu panel" id="appearance-menu" hidden>
+        <fieldset>
+          <legend>Éclairage</legend>
+          <div class="appearance-options">
+            <label><input type="radio" name="time" value="day"><span class="action">Jour</span></label>
+            <label><input type="radio" name="time" value="night"><span class="action">Nuit</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Saison</legend>
+          <div class="appearance-options">
+            <label><input type="radio" name="season" value="spring"><span class="action">Printemps</span></label>
+            <label><input type="radio" name="season" value="summer"><span class="action">Été</span></label>
+            <label><input type="radio" name="season" value="autumn"><span class="action">Automne</span></label>
+            <label><input type="radio" name="season" value="winter"><span class="action">Hiver</span></label>
+          </div>
+        </fieldset>
+        <details class="appearance-audio">
+          <summary>Son des menus</summary>
+          <label for="click-sound">Importer un clic OGG</label>
+          <input id="click-sound" type="file" accept=".ogg,audio/ogg">
+          <small id="click-sound-status" role="status"></small>
+        </details>
+      </div>
     </div>
   </header>
   <main class="workspace">
@@ -46,11 +73,11 @@
         <fieldset class="dimensions">
           <legend>Dimensions</legend>
           <div class="dimension">
-            <div class="dimension-label"><label for="width">Largeur</label><output id="width-value" for="width">17 blocs</output></div>
+            <div class="dimension-label"><label for="width">Largeur</label><span class="dimension-value"><input type="number" id="width-value" aria-label="Largeur en blocs" min="5" max="49" step="2" value="17" inputmode="numeric"><span aria-hidden="true">blocs</span></span></div>
             <input type="range" id="width" name="width" min="5" max="49" step="2" value="17">
           </div>
           <div class="dimension">
-            <div class="dimension-label"><label for="height">Hauteur</label><output id="height-value" for="height">6 blocs</output></div>
+            <div class="dimension-label"><label for="height">Hauteur</label><span class="dimension-value"><input type="number" id="height-value" aria-label="Hauteur en blocs" min="2" max="24" step="1" value="6" inputmode="numeric"><span aria-hidden="true">blocs</span></span></div>
             <input type="range" id="height" name="height" min="2" max="24" value="6">
           </div>
           <div class="setting-line"><label for="double-ridge">Double bloc central</label><input class="switch" id="double-ridge" name="double-ridge" type="checkbox" role="switch"></div>
@@ -58,7 +85,7 @@
         <div class="material-setting">
           <label for="choose-material">Matériau du toit</label>
           <button type="button" class="material-button" id="choose-material" aria-haspopup="dialog">
-            <span class="swatch" id="current-swatch" aria-hidden="true"><i></i></span><span id="current-material">Chêne</span><svg><use href="#icon-dropdown"/></svg>
+            <span class="swatch" id="current-swatch" aria-hidden="true"></span><span id="current-material">Chêne</span><svg><use href="#icon-dropdown"/></svg>
           </button>
         </div>
         <div class="setting-line show-grid"><label for="grid">Afficher la grille</label><input class="switch" id="grid" type="checkbox" name="grid" role="switch" checked></div>
@@ -93,6 +120,26 @@
     </div>
     <input id="material-search" type="search" aria-label="Rechercher un matériau" placeholder="Rechercher un matériau…">
     <div class="material-list" id="material-list"></div>
+    <details class="texture-import">
+      <summary>Textures vanilla</summary>
+      <label for="vanilla-file">Importer le fichier .jar de Minecraft Java ou un pack .zip</label>
+      <input id="vanilla-file" type="file" accept=".jar,.zip">
+      <small id="vanilla-status" role="status"></small>
+    </details>
+  </dialog>
+  <dialog class="picker panel" id="export-dialog" aria-labelledby="export-title">
+    <form id="export-form">
+      <div class="picker-heading">
+        <h2 id="export-title">Exporter le profil</h2>
+        <button type="button" class="icon-button" id="close-export" aria-label="Fermer l’export"><svg><use href="#icon-close"/></svg></button>
+      </div>
+      <div class="export-fields">
+        <label>Nom du toit<input id="roof-name" maxlength="72" placeholder="Profil du toit"></label>
+        <label>Couleur du fond<input id="export-color" type="color" value="#bfd9ed"></label>
+      </div>
+      <canvas id="export-preview" width="1600" height="900" role="img" aria-label="Aperçu du PNG au format 16 sur 9"></canvas>
+      <button class="action" type="submit" id="confirm-export"><svg><use href="#icon-download"/></svg>Télécharger le PNG</button>
+    </form>
   </dialog>
 </body>
 </html>

@@ -1,8 +1,17 @@
 import { generateRoof, roofShapes } from './roof.mjs';
 import { materialGroups, materials } from './materials.mjs';
+import { setupAppearance } from './appearance.mjs?v=seasons';
+import { setupMenuSound } from './menu-sound.mjs?v=seasons';
+import { importLocalTextures, readLocalTextures, textureName } from './vanilla-textures.mjs?v=seasons';
 
 const form = document.querySelector('#settings');
 const canvas = document.querySelector('#profile');
+const exportDialog = document.querySelector('#export-dialog');
+const exportForm = document.querySelector('#export-form');
+const exportCanvas = document.querySelector('#export-preview');
+const exportName = document.querySelector('#roof-name');
+const exportColor = document.querySelector('#export-color');
+const confirmExport = document.querySelector('#confirm-export');
 const shapePicker = document.querySelector('#shapes');
 const downloadButton = document.querySelector('#download');
 const exportStatus = document.querySelector('#export-status');
@@ -50,12 +59,20 @@ function createTexture({ color, texture }) {
   return tile;
 }
 
-const tiles = new Map([...materials].map(([id, material]) => [id, createTexture(material)]));
-const tileUrls = new Map([...tiles].map(([id, tile]) => [id, tile.toDataURL()]));
+const tileUrls = new Map([...materials].map(([id, entry]) => [id, createTexture(entry).toDataURL()]));
+let vanillaTextures = readLocalTextures();
+const favicon = document.querySelector('link[rel=icon]');
+
+function updateFavicon() {
+  favicon.type = vanillaTextures.crafting_table_front ? 'image/png' : 'image/svg+xml';
+  favicon.href = vanillaTextures.crafting_table_front || './crafting-table.svg';
+}
+
+updateFavicon();
 
 function applySwatch(element, material) {
   element.style.setProperty('--swatch-color', material.color);
-  element.style.setProperty('--swatch-texture', `url("${tileUrls.get(material.id)}")`);
+  element.style.setProperty('--swatch-texture', `url("${vanillaTextures[textureName(material)] || tileUrls.get(material.id)}")`);
 }
 
 function normalizeSearch(text) {
@@ -77,7 +94,6 @@ const sections = materialGroups.map((group) => {
     const swatch = document.createElement('span');
     swatch.className = 'swatch';
     swatch.setAttribute('aria-hidden', 'true');
-    swatch.append(document.createElement('i'));
     applySwatch(swatch, entry);
     button.append(swatch, entry.name);
     swatches.append(button);
@@ -133,7 +149,7 @@ materialList.addEventListener('click', (event) => {
   picker.close();
 });
 
-for (const modal of [settingsPanel, picker]) {
+for (const modal of [settingsPanel, picker, exportDialog]) {
   modal.addEventListener('click', (event) => {
     if (event.target !== modal || !modal.open) return;
     const bounds = modal.getBoundingClientRect();
@@ -188,18 +204,22 @@ function drawPiece(context, piece, x, y, size) {
   context.restore();
 }
 
-function drawProfile(context, viewportWidth, viewportHeight) {
+function drawProfile(context, viewportWidth, viewportHeight, {
+  background = '#bfd9ed', ink = '#344e65', grid = '#8eafc7', axis = '#58728b', maxCell = 44,
+} = {}) {
   const { width, height, showGrid, pieces } = profile;
   const bounds = { left: 36, right: 16, top: 23, bottom: 39 };
-  const size = Math.min(44, (viewportWidth - bounds.left - bounds.right) / width, (viewportHeight - bounds.top - bounds.bottom) / height);
+  const size = Math.min(maxCell, (viewportWidth - bounds.left - bounds.right) / width, (viewportHeight - bounds.top - bounds.bottom) / height);
   const gridWidth = width * size;
   const gridHeight = height * size;
   const left = Math.round((viewportWidth - gridWidth + bounds.left - bounds.right) / 2);
   const base = Math.round((viewportHeight + gridHeight + bounds.top - bounds.bottom) / 2);
   const top = base - gridHeight;
 
-  context.fillStyle = '#bfd9ed';
-  context.fillRect(0, 0, viewportWidth, viewportHeight);
+  if (background) {
+    context.fillStyle = background;
+    context.fillRect(0, 0, viewportWidth, viewportHeight);
+  }
 
   if (showGrid) {
     context.beginPath();
@@ -213,7 +233,7 @@ function drawProfile(context, viewportWidth, viewportHeight) {
       context.moveTo(left, y);
       context.lineTo(left + gridWidth, y);
     }
-    context.strokeStyle = '#8eafc7';
+    context.strokeStyle = grid;
     context.lineWidth = 1;
     context.stroke();
 
@@ -221,7 +241,7 @@ function drawProfile(context, viewportWidth, viewportHeight) {
     context.setLineDash([3, 4]);
     context.moveTo(left + gridWidth / 2, top - 10);
     context.lineTo(left + gridWidth / 2, base);
-    context.strokeStyle = '#607e9a';
+    context.strokeStyle = axis;
     context.stroke();
     context.setLineDash([]);
   }
@@ -230,13 +250,13 @@ function drawProfile(context, viewportWidth, viewportHeight) {
     drawPiece(context, piece, left + piece.x * size, base - (piece.y + 1) * size, size);
   }
 
-  context.strokeStyle = '#58728b';
+  context.strokeStyle = axis;
   context.beginPath();
   context.moveTo(left, base + 1);
   context.lineTo(left + gridWidth, base + 1);
   context.stroke();
 
-  context.fillStyle = '#344e65';
+  context.fillStyle = ink;
   context.font = '12px Monocraft, monospace';
   context.textBaseline = 'middle';
   context.textAlign = 'right';
@@ -264,7 +284,9 @@ function resizeCanvas() {
   canvas.height = Math.round(height * scale);
   const context = canvas.getContext('2d');
   context.setTransform(scale, 0, 0, scale, 0, 0);
-  drawProfile(context, width, height);
+  const night = document.documentElement.dataset.time === 'night';
+  const contrast = night ? { ink: '#dbe8ff', grid: '#90aac466', axis: '#b5c6e2' } : {};
+  drawProfile(context, width, height, { ...contrast, background: null });
 }
 
 function update() {
@@ -289,8 +311,11 @@ function update() {
   applySwatch(document.querySelector('#current-swatch'), material);
   document.querySelector('.materials').style.setProperty('--piece-color', material.color);
 
-  for (const slider of [widthInput, heightInput]) {
-    document.querySelector(`#${slider.id}-value`).value = `${slider.value} blocs`;
+  for (const [slider, count] of dimensions) {
+    count.min = slider.min;
+    count.max = slider.max;
+    count.step = slider.step;
+    if (count.value !== slider.value) count.value = slider.value;
     slider.setAttribute('aria-valuetext', `${slider.value} blocs`);
   }
 
@@ -298,15 +323,51 @@ function update() {
   document.querySelector('#profile-meta').textContent = summary;
   canvas.setAttribute('aria-label', `Profil du toit. ${summary}.`);
 
-  const counts = { block: 0, slab: 0, stair: 0 };
-  for (const { kind } of pieces) counts[kind] += 1;
-  for (const [kind, count] of Object.entries(counts)) {
+  for (const [kind, count] of Object.entries(countPieces(pieces))) {
     document.querySelector(`#${kind}s`).textContent = count;
   }
   resizeCanvas();
 }
 
-form.addEventListener('input', update);
+function countPieces(pieces) {
+  const counts = { block: 0, slab: 0, stair: 0 };
+  for (const { kind } of pieces) counts[kind] += 1;
+  return counts;
+}
+
+const dimensions = [widthInput, heightInput].map(slider => [
+  slider, document.querySelector(`#${slider.id}-value`),
+]);
+const countInputs = new Set(dimensions.map(([, count]) => count));
+for (const [slider, count] of dimensions) {
+  slider.addEventListener('wheel', event => {
+    if (event.ctrlKey || !event.deltaY) return;
+    event.preventDefault();
+    if (event.deltaY < 0) slider.stepUp();
+    else slider.stepDown();
+    update();
+  }, { passive: false });
+
+  count.addEventListener('input', () => {
+    if (count.value && count.validity.valid) {
+      slider.value = count.value;
+      update();
+    }
+  });
+  count.addEventListener('blur', () => {
+    if (Number.isFinite(count.valueAsNumber)) slider.value = String(count.valueAsNumber);
+    update();
+  });
+  count.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    count.blur();
+  });
+}
+
+form.addEventListener('input', event => {
+  if (!countInputs.has(event.target)) update();
+});
 form.addEventListener('reset', () => requestAnimationFrame(() => {
   material = defaultMaterial;
   widthInput.min = 5;
@@ -318,16 +379,66 @@ form.addEventListener('submit', (event) => event.preventDefault());
 new ResizeObserver(resizeCanvas).observe(canvas);
 document.fonts.ready.then(resizeCanvas);
 
+function exportTitle() {
+  return exportName.value.trim() || 'Profil du toit';
+}
+
+function drawExport() {
+  const ctx = exportCanvas.getContext('2d');
+  const { width: imageWidth, height: imageHeight } = exportCanvas;
+  const { width, height, shape, pieces } = profile;
+  const background = exportColor.value;
+  const [r, g, b] = background.slice(1).match(/../g).map(value => parseInt(value, 16));
+  const dark = (r * 299 + g * 587 + b * 114) / 1000 < 141;
+  const ink = dark ? '#f5f5f3' : '#182834';
+  const grid = dark ? '#ffffff32' : '#14283930';
+  const axis = dark ? '#ffffff80' : '#14283985';
+  ctx.clearRect(0, 0, imageWidth, imageHeight);
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, imageWidth, imageHeight);
+  ctx.fillStyle = ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '26px Monocraft, monospace';
+  if (exportName.value.trim()) ctx.fillText('Profil du toit', 60, 67);
+  ctx.font = '48px Monocraft, monospace';
+  ctx.fillText(exportTitle(), 60, 123, imageWidth - 120);
+  ctx.font = '25px Monocraft, monospace';
+  ctx.fillText(`${roofShapes[shape].label} · ${width} × ${height} blocs · ${material.name}`, 60, 171, imageWidth - 120);
+
+  const counts = countPieces(pieces);
+  const parts = [
+    `${counts.block} bloc${counts.block === 1 ? '' : 's'}`,
+    `${counts.slab} dalle${counts.slab === 1 ? '' : 's'}`,
+    `${counts.stair} escalier${counts.stair === 1 ? '' : 's'}`,
+  ];
+  ctx.fillText(parts.join('   ·   '), 60, 218, imageWidth - 120);
+  ctx.fillStyle = grid;
+  ctx.fillRect(60, 247, imageWidth - 120, 2);
+  ctx.save();
+  ctx.translate(53, 275);
+  drawProfile(ctx, imageWidth - 106, imageHeight - 305, { background, ink, grid, axis, maxCell: 76 });
+  ctx.restore();
+}
+
 downloadButton.addEventListener('click', () => {
-  downloadButton.disabled = true;
   exportStatus.textContent = '';
+  drawExport();
+  exportDialog.showModal();
+  exportName.focus();
+});
+exportForm.addEventListener('input', drawExport);
+document.querySelector('#close-export').addEventListener('click', () => exportDialog.close());
+exportForm.addEventListener('submit', event => {
+  event.preventDefault();
+  drawExport();
+  confirmExport.disabled = true;
+  const slug = exportTitle().normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   const { shape, width, height } = profile;
-  const exportCanvas = document.createElement('canvas');
-  exportCanvas.width = 1200;
-  exportCanvas.height = Math.max(450, Math.min(1110, Math.ceil(height * 44 + 62)));
-  drawProfile(exportCanvas.getContext('2d'), exportCanvas.width, exportCanvas.height);
-  exportCanvas.toBlob((blob) => {
-    downloadButton.disabled = false;
+  const filename = (exportName.value.trim() && slug ? slug : `toit-${shape}-${material.id}-${width}x${height}`) + '.png';
+  exportCanvas.toBlob(blob => {
+    confirmExport.disabled = false;
     if (!blob) {
       exportStatus.textContent = 'Impossible de générer le PNG.';
       return;
@@ -335,11 +446,36 @@ downloadButton.addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `toit-${shape}-${material.id}-${width}x${height}.png`;
+    link.download = filename;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    exportDialog.close();
     exportStatus.textContent = 'PNG exporté.';
   }, 'image/png');
 });
 
+const vanillaFile = document.querySelector('#vanilla-file');
+const vanillaStatus = document.querySelector('#vanilla-status');
+vanillaFile.addEventListener('change', async () => {
+  const file = vanillaFile.files[0];
+  vanillaFile.value = '';
+  if (!file) return;
+  vanillaFile.disabled = true;
+  vanillaStatus.textContent = 'Lecture des textures…';
+  try {
+    vanillaTextures = await importLocalTextures(file, [...materials.values()].map(textureName));
+    updateFavicon();
+    for (const button of materialList.querySelectorAll('[data-material]'))
+      applySwatch(button.querySelector('.swatch'), materials.get(button.dataset.material));
+    update();
+    vanillaStatus.textContent = `${Object.keys(vanillaTextures).length} textures chargées localement.`;
+  } catch (error) {
+    vanillaStatus.textContent = error instanceof RangeError ? 'Archive invalide.' : error.message;
+  } finally {
+    vanillaFile.disabled = false;
+  }
+});
+
+setupAppearance(resizeCanvas);
+setupMenuSound();
 update();
